@@ -11,6 +11,10 @@ database:
 userSuppliedPronouns: false # This setting can be abused by players.
 defaultProunounTemplate: "&7(%s)&r"
 
+maxBioLength: 64
+
+autoUpdate: true
+
 availablePronouns:
   he/him: "&3(&bHe&3/&bHim&3)&r"
   she/her: "&5(&dShe&5/&dHer&5)&r"

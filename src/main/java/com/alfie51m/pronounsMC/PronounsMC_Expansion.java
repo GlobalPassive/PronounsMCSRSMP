@@ -52,6 +52,10 @@ public class PronounsMC_Expansion extends PlaceholderExpansion {
             return pluginInstance.getColoredPronoun(rawKey);
         }
 
+        if (identifier.equalsIgnoreCase("bio")) {
+            return pluginInstance.getDatabase().getBio(player.getUniqueId().toString());
+        }
+
         return null;
     }
 }

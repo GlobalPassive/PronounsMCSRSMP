@@ -44,6 +44,14 @@ public class DatabaseManager {
             createTableQuery = "CREATE TABLE IF NOT EXISTS pronouns (uuid TEXT PRIMARY KEY, pronoun TEXT);";
         }
         try(Statement stmt = connection.createStatement()){ stmt.executeUpdate(createTableQuery); }
+
+        String createBioTableQuery;
+        if(dbType.equals("mysql")){
+            createBioTableQuery = "CREATE TABLE IF NOT EXISTS bios (uuid VARCHAR(36) PRIMARY KEY, bio VARCHAR(255));";
+        } else {
+            createBioTableQuery = "CREATE TABLE IF NOT EXISTS bios (uuid TEXT PRIMARY KEY, bio TEXT);";
+        }
+        try(Statement stmt = connection.createStatement()){ stmt.executeUpdate(createBioTableQuery); }
     }
 
     public String getPronouns(String uuid){
@@ -74,6 +82,36 @@ public class DatabaseManager {
             stmt.setString(1,uuid);
             stmt.executeUpdate();
         } catch(SQLException e){ plugin.getLogger().warning("Failed to reset pronouns: "+e.getMessage()); }
+    }
+
+    public String getBio(String uuid){
+        try(PreparedStatement stmt = connection.prepareStatement("SELECT bio FROM bios WHERE uuid = ?")){
+            stmt.setString(1,uuid);
+            ResultSet rs = stmt.executeQuery();
+            if(rs.next()) return rs.getString("bio");
+        } catch(SQLException e){ plugin.getLogger().warning("Failed to fetch bio: "+e.getMessage()); }
+        return null;
+    }
+
+    public void setBio(String uuid,String bio){
+        String dbType = plugin.getPluginConfig().getString("database.type","mysql").toLowerCase();
+        String query = dbType.equals("mysql") ?
+                "INSERT INTO bios (uuid,bio) VALUES (?,?) ON DUPLICATE KEY UPDATE bio=?" :
+                "INSERT OR REPLACE INTO bios (uuid,bio) VALUES (?,?)";
+
+        try(PreparedStatement stmt = connection.prepareStatement(query)){
+            stmt.setString(1,uuid);
+            stmt.setString(2,bio);
+            if(dbType.equals("mysql")) stmt.setString(3,bio);
+            stmt.executeUpdate();
+        } catch(SQLException e){ plugin.getLogger().warning("Failed to set bio: "+e.getMessage()); }
+    }
+
+    public void resetBio(String uuid){
+        try(PreparedStatement stmt = connection.prepareStatement("DELETE FROM bios WHERE uuid=?")){
+            stmt.setString(1,uuid);
+            stmt.executeUpdate();
+        } catch(SQLException e){ plugin.getLogger().warning("Failed to reset bio: "+e.getMessage()); }
     }
 
     public void close(){

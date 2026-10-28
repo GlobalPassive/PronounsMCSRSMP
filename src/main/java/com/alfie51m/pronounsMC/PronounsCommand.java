@@ -1,6 +1,7 @@
 package com.alfie51m.pronounsMC;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -158,6 +159,105 @@ public class PronounsCommand implements TabExecutor {
                 msgTemplate = msgTemplate.replace("{pronouns}", colorized);
                 sender.sendMessage(ColorUtil.color(msgTemplate));
                 return true;
+
+            case "update":
+                if (!sender.hasPermission("pronouns.reload")) {
+                    sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.noPermission", "&cNo permission.")));
+                    return true;
+                }
+                sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.updaterChecking", "&9Checking for updates...")));
+                plugin.getUpdater().checkForUpdate(sender);
+                return true;
+
+            case "bio": {
+                if (args.length == 1) {
+                    if (!(sender instanceof Player player)) {
+                        sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.onlyPlayers", "&cOnly players can set pronouns.")));
+                        return true;
+                    }
+
+                    String ownBio = plugin.getDatabase().getBio(player.getUniqueId().toString());
+                    if (ownBio == null) {
+                        sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.yourBioNone", "&aYour bio: &bNot set")));
+                    } else {
+                        String ownBioTemplate = plugin.getLang().get("messages.yourBio", "&aYour bio: &r{bio}");
+                        ownBioTemplate = ownBioTemplate.replace("{bio}", ownBio);
+                        sender.sendMessage(ColorUtil.color(ownBioTemplate));
+                    }
+                    return true;
+                }
+
+                if (args[1].equalsIgnoreCase("get")) {
+                    if (args.length < 3) {
+                        sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.usageBio", "&cUsage: /pronouns bio [text], /pronouns bio get <username>, or /pronouns bio reset")));
+                        return true;
+                    }
+                    if (!sender.hasPermission("pronouns.get")) {
+                        sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.noPermission", "&cNo permission.")));
+                        return true;
+                    }
+
+                    String bioTargetName = args[2];
+                    Player bioTarget = Bukkit.getPlayerExact(bioTargetName);
+                    UUID bioTargetUUID;
+
+                    if (bioTarget != null) {
+                        bioTargetUUID = bioTarget.getUniqueId();
+                    } else {
+                        OfflinePlayer offlineTarget = Bukkit.getOfflinePlayer(bioTargetName);
+                        if (offlineTarget == null || !offlineTarget.hasPlayedBefore()) {
+                            sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.playerNotFound", "&cPlayer not found!")));
+                            return true;
+                        }
+                        bioTargetUUID = offlineTarget.getUniqueId();
+                    }
+
+                    String targetBio = plugin.getDatabase().getBio(bioTargetUUID.toString());
+                    if (targetBio == null) {
+                        String noneTemplate = plugin.getLang().get("messages.playerBioNone", "&a{player}'s bio: &bNot set");
+                        noneTemplate = noneTemplate.replace("{player}", bioTargetName);
+                        sender.sendMessage(ColorUtil.color(noneTemplate));
+                    } else {
+                        String bioTemplate = plugin.getLang().get("messages.playerBioFormat", "&a{player}'s bio: &r{bio}");
+                        bioTemplate = bioTemplate.replace("{player}", bioTargetName);
+                        bioTemplate = bioTemplate.replace("{bio}", targetBio);
+                        sender.sendMessage(ColorUtil.color(bioTemplate));
+                    }
+                    return true;
+                }
+
+                if (args[1].equalsIgnoreCase("reset")) {
+                    if (!(sender instanceof Player player)) {
+                        sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.onlyPlayers", "&cOnly players can set pronouns.")));
+                        return true;
+                    }
+
+                    plugin.getDatabase().resetBio(player.getUniqueId().toString());
+                    sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.bioReset", "&aYour bio has been reset.")));
+                    return true;
+                }
+
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.onlyPlayers", "&cOnly players can set pronouns.")));
+                    return true;
+                }
+
+                String bioText = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                int maxBioLength = plugin.getPluginConfig().getInt("maxBioLength", 64);
+                if (bioText.length() > maxBioLength) {
+                    String tooLongTemplate = plugin.getLang().get("messages.bioTooLong", "&cBio is too long! Maximum {max} characters.");
+                    tooLongTemplate = tooLongTemplate.replace("{max}", String.valueOf(maxBioLength));
+                    sender.sendMessage(ColorUtil.color(tooLongTemplate));
+                    return true;
+                }
+
+                String cleanBio = bioText.replaceAll("[&" + ChatColor.COLOR_CHAR + "].", "");
+                plugin.getDatabase().setBio(player.getUniqueId().toString(), cleanBio);
+                String bioMsgTemplate = plugin.getLang().get("messages.bioSet", "&aYour bio has been set to: &r{bio}");
+                bioMsgTemplate = bioMsgTemplate.replace("{bio}", cleanBio);
+                sender.sendMessage(ColorUtil.color(bioMsgTemplate));
+                return true;
+            }
         }
 
         sender.sendMessage(ColorUtil.color(plugin.getLang().get("messages.usageMain", "&cUsage: /pronouns <command>")));
@@ -171,8 +271,10 @@ public class PronounsCommand implements TabExecutor {
             subCommands.add("list");
             subCommands.add("reset");
             subCommands.add("set");
+            subCommands.add("bio");
             if (sender.hasPermission("pronouns.get")) subCommands.add("get");
             if (sender.hasPermission("pronouns.reload")) subCommands.add("reload");
+            if (sender.hasPermission("pronouns.reload")) subCommands.add("update");
             return subCommands;
         }
 
@@ -198,6 +300,24 @@ public class PronounsCommand implements TabExecutor {
                 }
                 return completions;
             }
+
+            if (args[0].equalsIgnoreCase("bio")) {
+                List<String> completions = new ArrayList<>();
+                if (sender.hasPermission("pronouns.get")) completions.add("get");
+                completions.add("reset");
+                return completions;
+            }
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("bio") && args[1].equalsIgnoreCase("get")
+                && sender.hasPermission("pronouns.get")) {
+            List<String> completions = new ArrayList<>();
+            String partial = args[2].toLowerCase();
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                if (onlinePlayer.getName().toLowerCase().startsWith(partial))
+                    completions.add(onlinePlayer.getName());
+            }
+            return completions;
         }
 
         return null;

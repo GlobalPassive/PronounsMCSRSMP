@@ -4,10 +4,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+
 public class PronounsMC extends JavaPlugin {
 
     private DatabaseManager database;
     private LangManager lang;
+    private Updater updater;
     private FileConfiguration config;
 
     @Override
@@ -31,6 +34,11 @@ public class PronounsMC extends JavaPlugin {
         getCommand("pronouns").setExecutor(command);
         getCommand("pronouns").setTabCompleter(command);
 
+        updater = new Updater(this);
+        if (config.getBoolean("autoUpdate", true)) {
+            updater.checkForUpdate(null);
+        }
+
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             Bukkit.getScheduler().runTask(this, () -> new PronounsMC_Expansion(this).register());
         } else {
@@ -45,6 +53,8 @@ public class PronounsMC extends JavaPlugin {
 
     public DatabaseManager getDatabase() { return database; }
     public LangManager getLang() { return lang; }
+    public Updater getUpdater() { return updater; }
+    public File getPluginFile() { return getFile(); }
     public FileConfiguration getPluginConfig() { return config; }
 
     public String getColoredPronoun(String rawKey) {

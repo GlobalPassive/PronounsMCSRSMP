@@ -1,5 +1,5 @@
 # PronounsMC
-
+(ported to 26.3 for the MCSR SMP YAY)
 **PronounsMC** is a Minecraft Spigot plugin that allows players to set and display their pronouns. It supports multiple database types (**MySQL** and **SQLite**) and provides customizable messages via language files.
 
 ## Notes
@@ -146,4 +146,3 @@ Contributions are welcome! To contribute:
 ---
 
 ## Thanks for using PronounsMC
-You can also find this plugin on [Modrinth](https://modrinth.com/plugin/PronounsMC), [Paper Hangar](https://hangar.papermc.io/Alfie51m/PronounsMC), [SpigotMC](https://www.spigotmc.org/resources/PronounsMC.122068/)
